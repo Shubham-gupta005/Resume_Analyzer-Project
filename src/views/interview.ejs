@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Interview Session - AI Resume Analyzer</title>
+    <!-- Imports the existing styles.css stylesheet for shared styling elements -->
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <!-- Main outer container utilizing the Outfit typography and full-screen flex layout -->
+    <div class="interview-workspace-container">
+      
+      <!-- Top header showing the candidate name and the "End Session" action button -->
+      <header class="interview-header">
+        <div class="header-info">
+          <h1>AI Interview Coach</h1>
+          <p>Mock Technical Interview for <strong><%= resume.structuredResume.name || "Candidate" %></strong></p>
+        </div>
+        <!-- End Session button redirects the user back to the static ATS evaluation results page -->
+        <a href="/resume/result/<%= resume._id %>" class="btn btn-secondary end-session-btn">End Session</a>
+      </header>
+
+      <!-- Main workspace splitting the interface into chat and dashboard -->
+      <div class="interview-workspace">
+        
+        <!-- Left Side: Chat log panel for the conversation -->
+        <section class="chat-panel">
+          <!-- Scrollable box containing message bubbles -->
+          <div class="chat-box" id="chatBox">
+            <!-- Starting placeholder loading indicator before Gemini responds for the first question -->
+            <div id="initialLoader" class="loading-bubble">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="loader-text">Connecting to Senior Technical Interviewer...</span>
+            </div>
+          </div>
+          
+          <!-- Message composition area with input and action button -->
+          <form class="chat-input-area" id="chatForm">
+            <input 
+              type="text" 
+              id="userMsgInput" 
+              placeholder="Type your response here..." 
+              autocomplete="off"
+              disabled
+            />
+            <button type="submit" id="sendBtn" class="btn btn-primary submit-btn" disabled>Send</button>
+          </form>
+        </section>
+
+        <!-- Right Side: Live Feedback dashboard -->
+        <section class="feedback-panel">
+          <h2>Live Interview Feedback</h2>
+          
+          <!-- Displayed before the user submits their first answer -->
+          <div class="feedback-placeholder" id="feedbackPlaceholder">
+            <div class="placeholder-icon">💬</div>
+            <p>Your answers will be evaluated here in real time. Submit your first response to see detailed feedback!</p>
+          </div>
+
+          <!-- Dynamic feedback card updates after each conversation turn -->
+          <div class="feedback-content hidden" id="feedbackContent">
+            <!-- Card containing AI grading & strengths assessment -->
+            <div class="feedback-card">
+              <h3>Answer Evaluation</h3>
+              <p id="evalText">Analysis goes here...</p>
+            </div>
+            
+            <!-- Card detailing actionable guidelines to enhance the answer -->
+            <div class="feedback-card">
+              <h3>Suggestions for Improvement</h3>
+              <ul id="suggestionsList">
+                <!-- Javascript will append bullet points here -->
+              </ul>
+            </div>
+
+            <!-- Card detailing alternative related topics to prepare -->
+            <div class="feedback-card">
+              <h3>Related Topics to Prepare</h3>
+              <ul id="recommendedList">
+                <!-- Javascript will append items here -->
+              </ul>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- Client-side script handling session logic, chat history, and API communications -->
+    <script>
+      const resumeId = "<%= resume._id %>";
+      let chatHistory = [];
+
+      const chatBox = document.getElementById("chatBox");
+      const chatForm = document.getElementById("chatForm");
+      const userMsgInput = document.getElementById("userMsgInput");
+      const sendBtn = document.getElementById("sendBtn");
+      const initialLoader = document.getElementById("initialLoader");
+
+      // DOM nodes for feedback dashboard updating
+      const feedbackPlaceholder = document.getElementById("feedbackPlaceholder");
+      const feedbackContent = document.getElementById("feedbackContent");
+      const evalText = document.getElementById("evalText");
+      const suggestionsList = document.getElementById("suggestionsList");
+      const recommendedList = document.getElementById("recommendedList");
+
+      // Appends a new message bubble to the scroll log and scrolls down
+      function addMessageBubble(role, text) {
+        const bubble = document.createElement("div");
+        bubble.classList.add("message-bubble", role);
+        
+        const avatar = document.createElement("div");
+        avatar.classList.add("avatar");
+        avatar.textContent = role === "interviewer" ? "🎙️" : "👤";
+
+        const textContent = document.createElement("div");
+        textContent.classList.add("bubble-text");
+        textContent.textContent = text;
+
+        bubble.appendChild(avatar);
+        bubble.appendChild(textContent);
+        chatBox.appendChild(bubble);
+        
+        // Auto-scroll chat area to bottom
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      // Appends a temporary typing indicator when awaiting API feedback
+      function addTypingIndicator() {
+        const indicator = document.createElement("div");
+        indicator.id = "typingIndicator";
+        indicator.classList.add("message-bubble", "interviewer", "typing");
+
+        const avatar = document.createElement("div");
+        avatar.classList.add("avatar");
+        avatar.textContent = "🎙️";
+
+        const dots = document.createElement("div");
+        dots.classList.add("bubble-text", "dots-container");
+        dots.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+
+        indicator.appendChild(avatar);
+        indicator.appendChild(dots);
+        chatBox.appendChild(indicator);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      // Removes the temporary typing indicator
+      function removeTypingIndicator() {
+        const indicator = document.getElementById("typingIndicator");
+        if (indicator) {
+          indicator.remove();
+        }
+      }
+
+      // Disables form controls during API calls to prevent double submission
+      function setInputState(disabled) {
+        userMsgInput.disabled = disabled;
+        sendBtn.disabled = disabled;
+        if (!disabled) {
+          userMsgInput.focus();
+        }
+      }
+
+      // Sends candidate response or fetches initial question
+      async function sendChatMessage(userMessage = "") {
+        setInputState(true);
+        if (userMessage) {
+          addMessageBubble("candidate", userMessage);
+          chatHistory.push({ role: "candidate", text: userMessage });
+          addTypingIndicator();
+        }
+
+        try {
+          const response = await fetch("/interview/chat", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              resumeId,
+              userMessage,
+              chatHistory
+            })
+          });
+
+          const data = await response.json();
+          
+          if (initialLoader) {
+            initialLoader.remove();
+          }
+          removeTypingIndicator();
+
+          if (data.error) {
+            addMessageBubble("interviewer", "Error: " + data.error);
+            setInputState(false);
+            return;
+          }
+
+          // Add Interviewer response to conversation
+          addMessageBubble("interviewer", data.interviewerMessage);
+          chatHistory.push({ role: "interviewer", text: data.interviewerMessage });
+
+          // Update Feedback Dashboard (if evaluation feedback is returned)
+          if (data.evaluation) {
+            feedbackPlaceholder.classList.add("hidden");
+            feedbackContent.classList.remove("hidden");
+            
+            evalText.textContent = data.evaluation;
+            
+            // Clear lists and append suggestions
+            suggestionsList.innerHTML = "";
+            data.suggestions.forEach(suggestion => {
+              const li = document.createElement("li");
+              li.textContent = suggestion;
+              suggestionsList.appendChild(li);
+            });
+
+            // Append prep recommendation topics
+            recommendedList.innerHTML = "";
+            data.recommendedQuestions.forEach(question => {
+              const li = document.createElement("li");
+              li.textContent = question;
+              recommendedList.appendChild(li);
+            });
+          }
+
+          setInputState(false);
+        } catch (error) {
+          console.error("API Connection Error:", error);
+          removeTypingIndicator();
+          if (initialLoader) {
+            initialLoader.remove();
+          }
+          addMessageBubble("interviewer", "An error occurred connecting to the service. Please try again.");
+          setInputState(false);
+        }
+      }
+
+      // Form submit handler
+      chatForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+        const text = userMsgInput.value.trim();
+        if (!text) return;
+        
+        userMsgInput.value = "";
+        sendChatMessage(text);
+      });
+
+      // Start the interview session automatically on boot load
+      window.addEventListener("DOMContentLoaded", () => {
+        sendChatMessage("");
+      });
+    </script>
+  </body>
+</html>

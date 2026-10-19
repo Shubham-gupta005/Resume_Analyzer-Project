@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Error - AI Resume Analyzer</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      .error-card {
+        background-color: #ffffff;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        border-top: 5px solid #ef4444;
+        max-width: 600px;
+        width: 100%;
+        text-align: center;
+        margin: 20px auto;
+      }
+      .error-icon {
+        font-size: 64px;
+        color: #ef4444;
+        margin-bottom: 20px;
+      }
+      .error-title {
+        font-size: 24px;
+        color: #1e293b;
+        font-weight: 700;
+        margin-bottom: 15px;
+      }
+      .error-message {
+        font-size: 15px;
+        color: #64748b;
+        line-height: 1.6;
+        margin-bottom: 30px;
+        background-color: #f8fafc;
+        padding: 15px 20px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        text-align: left;
+        word-break: break-word;
+        font-family: monospace;
+      }
+      .home-btn {
+        display: inline-block;
+        background-color: #3b82f6;
+        color: #ffffff;
+        padding: 12px 30px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: background-color 0.2s ease;
+      }
+      .home-btn:hover {
+        background-color: #2563eb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="error-card">
+      <div class="error-icon">⚠️</div>
+      <h1 class="error-title">An Error Occurred</h1>
+      <div class="error-message">
+        <%= message %>
+      </div>
+      <a href="/" class="home-btn">Return to Home Page</a>
+    </div>
+  </body>
+</html>

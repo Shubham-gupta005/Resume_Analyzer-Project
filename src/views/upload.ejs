@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Resume Analyzer</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>AI Resume Analyzer</h1>
+        <p>
+          Upload your resume in PDF format for an instant AI-powered ATS
+          evaluation.
+        </p>
+      </header>
+
+      <main>
+        <% if (locals.error) { %>
+          <div class="error-msg"><%= error %></div>
+        <% } %>
+
+        <!-- The form submits a POST request with multipart/form-data required for file uploads -->
+        <form
+          action="/resume/upload"
+          method="POST"
+          enctype="multipart/form-data"
+          class="upload-form"
+        >
+          <div class="form-group">
+            <label for="resume">Select Resume (PDF):</label>
+            <!-- accept="application/pdf" restricts file selection to PDFs -->
+            <input
+              type="file"
+              id="resume"
+              name="resume"
+              accept="application/pdf"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="jobDescription">Job Description:</label>
+            <textarea
+              id="jobDescription"
+              name="jobDescription"
+              placeholder="Paste the complete job description or paste the required skills and responsibilities..."
+              rows="6"
+              required
+            ></textarea>
+          </div>
+          <button type="submit" class="submit-btn">Analyze Resume</button>
+        </form>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Interview Readiness Test - AI Resume Analyzer</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="result-container" style="max-width: 900px; padding: 30px;">
+      
+      <!-- Top Sticky Timer Bar (Visible only when test starts) -->
+      <div id="stickyTimerBar" class="timer-sticky-bar hidden">
+        <div class="timer-label">
+          <span>⏱️</span>
+          <span>Interview Readiness Test in Progress</span>
+        </div>
+        <div id="countdownDisplay" class="timer-countdown">60:00</div>
+      </div>
+
+      <header class="result-header" style="margin-bottom: 25px; padding-bottom: 20px;">
+        <h1>AI Interview Readiness Test</h1>
+        <p>Mock Assessment for <strong><%= resume.structuredResume.name || "Candidate" %></strong></p>
+      </header>
+
+      <!-- Section 1: Pre-test Instructions & Start Button -->
+      <div id="instructionsSection">
+        <div class="instructions-panel">
+          <h2>Test Guidelines & Instructions</h2>
+          <ul>
+            <li><strong>Tailored Questions</strong>: 5 conceptual/subjective theory questions specifically designed based on your resume and the target job description.</li>
+            <li><strong>Subjective Assessment</strong>: Read each question carefully and write your answers in the provided textareas. Code or short bullet-points are not required—aim to demonstrate deep conceptual understanding and architectural reasoning.</li>
+            <li><strong>Time Limit</strong>: You have exactly <strong>60 minutes</strong> to complete the exam.</li>
+            <li><strong>Automatic Submission</strong>: If the 60-minute limit expires, your test will be automatically submitted with whatever answers you have entered.</li>
+            <li><strong>No Retakes</strong>: Once submitted, you cannot retake the test for this resume. Duplicate submissions are blocked by the system.</li>
+            <li><strong>Session Integrity Security</strong>: To prevent cheating, your start time is cryptographically signed (`HMAC-SHA256`). Browser manipulation of the countdown clock will result in a validation failure on the server.</li>
+          </ul>
+          <div style="text-align: center; margin-top: 25px;">
+            <button id="startTestBtn" class="btn btn-warning" style="padding: 14px 35px; font-size: 16px;">Start Test</button>
+          </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 15px;">
+          <a href="/resume/result/<%= resume._id %>" class="btn btn-secondary">Back to Resume Analysis</a>
+        </div>
+      </div>
+
+      <!-- Section 2: Active Test Form (Initially Hidden) -->
+      <form id="testForm" action="/test/submit/<%= resume._id %>" method="POST" class="hidden">
+        <!-- Security signed session keys -->
+        <input type="hidden" name="startTime" value="<%= startTime %>" />
+        <input type="hidden" name="token" value="<%= token %>" />
+        <!-- Dynamic questions JSON parsed back on submission -->
+        <input type="hidden" name="questions" value='<%= JSON.stringify(questions) %>' />
+
+        <div class="questions-list">
+          <% questions.forEach(function(q, index) { %>
+            <div class="question-card">
+              <div class="question-meta">
+                <span class="question-number">Question <%= index + 1 %></span>
+                <span class="question-marks">Marks: <%= q.marks %></span>
+              </div>
+              <div class="question-text">
+                <%= q.question %>
+              </div>
+              <div class="form-group">
+                <textarea 
+                  name="answers[<%= index %>]" 
+                  class="answer-textarea" 
+                  placeholder="Type your detailed subjective answer here..." 
+                  required
+                ></textarea>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+
+        <div style="text-align: center; margin-top: 35px; border-top: 1px solid #e2e8f0; padding-top: 25px; display: flex; justify-content: center; gap: 15px;">
+          <button type="submit" id="submitTestBtn" class="btn btn-success" style="padding: 12px 30px;">Submit Test Answers</button>
+          <a href="/resume/result/<%= resume._id %>" class="btn btn-secondary" onclick="return confirm('Warning: Leaving this page will discard your test answers and terminate the session. Are you sure you want to exit?');">Cancel & Exit</a>
+        </div>
+      </form>
+
+    </div>
+
+    <!-- Client-side timer & UI toggle scripts -->
+    <script>
+      const startTestBtn = document.getElementById("startTestBtn");
+      const instructionsSection = document.getElementById("instructionsSection");
+      const testForm = document.getElementById("testForm");
+      const stickyTimerBar = document.getElementById("stickyTimerBar");
+      const countdownDisplay = document.getElementById("countdownDisplay");
+      const submitTestBtn = document.getElementById("submitTestBtn");
+
+      // 60 minutes in seconds
+      const TOTAL_TEST_TIME_SECONDS = 60 * 60;
+      let timeRemaining = TOTAL_TEST_TIME_SECONDS;
+      let timerInterval = null;
+      let formSubmitted = false;
+
+      // Formatting helper for countdown display (MM:SS)
+      function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }
+
+      // Handler when candidate starts the test
+      startTestBtn.addEventListener("click", function() {
+        // Toggle view containers
+        instructionsSection.classList.add("hidden");
+        testForm.classList.remove("hidden");
+        stickyTimerBar.classList.remove("hidden");
+
+        // Focus first textarea
+        const firstTextarea = testForm.querySelector("textarea");
+        if (firstTextarea) {
+          firstTextarea.focus();
+        }
+
+        // Start live countdown timer
+        startCountdown();
+      });
+
+      // Starts countdown tick logic
+      function startCountdown() {
+        countdownDisplay.textContent = formatTime(timeRemaining);
+        
+        timerInterval = setInterval(() => {
+          timeRemaining--;
+          
+          countdownDisplay.textContent = formatTime(timeRemaining);
+
+          // Alert styling: Turn clock red when 5 minutes or less remain
+          if (timeRemaining <= 5 * 60) {
+            countdownDisplay.classList.add("danger");
+          }
+
+          // Trigger automatic submission on expiration
+          if (timeRemaining <= 0) {
+            clearInterval(timerInterval);
+            autoSubmitTest();
+          }
+        }, 1000);
+      }
+
+      // Automatic submission on time expiration
+      function autoSubmitTest() {
+        if (formSubmitted) return;
+        formSubmitted = true;
+        
+        alert("Time is up! Your interview readiness test is being submitted automatically.");
+        
+        // Remove 'required' validations so empty textareas can submit successfully
+        const textareas = testForm.querySelectorAll("textarea");
+        textareas.forEach(ta => {
+          ta.removeAttribute("required");
+        });
+
+        // Submit form
+        testForm.submit();
+      }
+
+      // Prevent duplicate double-clicks on manual submit button
+      testForm.addEventListener("submit", function(e) {
+        if (formSubmitted) {
+          e.preventDefault();
+          return;
+        }
+        formSubmitted = true;
+        
+        // Stop timer
+        if (timerInterval) {
+          clearInterval(timerInterval);
+        }
+
+        submitTestBtn.textContent = "Grading Answers with AI...";
+        submitTestBtn.disabled = true;
+      });
+
+      // Warn before closing browser or refreshing tab (prevent accidental exits)
+      window.addEventListener("beforeunload", function(e) {
+        if (!instructionsSection.classList.contains("hidden") || formSubmitted) {
+          return; // Don't warn if test hasn't started or already submitting
+        }
+        e.preventDefault();
+        e.returnValue = "Leaving this page will discard your test answers. Are you sure?";
+      });
+    </script>
+  </body>
+</html>

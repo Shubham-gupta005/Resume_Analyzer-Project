@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analysis Result - AI Resume Analyzer</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="result-container">
+      <header class="result-header">
+        <h1>Resume Analysis Details</h1>
+        <div class="scores-wrapper">
+          <div class="score-circle">
+            <!-- Outputs the ATS score dynamically -->
+            <span class="score"><%= evaluation.atsScore %>%</span>
+            <span class="score-label">ATS Score</span>
+          </div>
+          <% if (evaluation.jobMatchPercentage !== undefined) { %>
+            <div class="score-circle match-circle">
+              <!-- Outputs the Job Match score dynamically -->
+              <span class="score"><%= evaluation.jobMatchPercentage %>%</span>
+              <span class="score-label">Job Match</span>
+            </div>
+          <% } %>
+        </div>
+      </header>
+
+      <main class="cards-grid">
+        <div class="card">
+          <h2>Strengths</h2>
+          <ul>
+            <!-- Loops through strengths array -->
+            <% evaluation.strengths.forEach(function(strength) { %>
+              <li><%= strength %></li>
+            <% }); %>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h2>Weaknesses</h2>
+          <ul>
+            <!-- Loops through weaknesses array -->
+            <% evaluation.weaknesses.forEach(function(weakness) { %>
+              <li><%= weakness %></li>
+            <% }); %>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h2>Suggestions</h2>
+          <ul>
+            <!-- Loops through suggestions array -->
+            <% evaluation.suggestions.forEach(function(suggestion) { %>
+              <li><%= suggestion %></li>
+            <% }); %>
+          </ul>
+        </div>
+
+        <% if (evaluation.skillsMatching && evaluation.skillsMatching.length > 0) { %>
+          <div class="card">
+            <h2>Matching Skills</h2>
+            <div class="keywords">
+              <% evaluation.skillsMatching.forEach(function(skill) { %>
+                <span class="badge" style="background-color: #e1f5fe; color: #0288d1;"><%= skill %></span>
+              <% }); %>
+            </div>
+          </div>
+        <% } %>
+
+        <% if (evaluation.skillsMissing && evaluation.skillsMissing.length > 0) { %>
+          <div class="card">
+            <h2>Missing Skills</h2>
+            <div class="keywords">
+              <% evaluation.skillsMissing.forEach(function(skill) { %>
+                <span class="badge" style="background-color: #ffebee; color: #c62828;"><%= skill %></span>
+              <% }); %>
+            </div>
+          </div>
+        <% } %>
+
+        <div class="card">
+          <h2>Missing Keywords</h2>
+          <div class="keywords">
+            <!-- Loops through keywords and applies pill badges -->
+            <% evaluation.missingKeywords.forEach(function(keyword) { %>
+              <span class="badge"><%= keyword %></span>
+            <% }); %>
+          </div>
+        </div>
+      </main>
+
+      <% if (locals.jobDescription) { %>
+        <details class="job-description-details">
+          <summary>Submitted Job Description</summary>
+          <div class="job-description-content"><%= jobDescription %></div>
+        </details>
+      <% } %>
+
+      <footer class="result-actions" style="margin-top: 30px;">
+        <a href="/interview/session/<%= resumeId %>" class="btn btn-success">Start Interview Coach</a>
+        <a href="/test/session/<%= resumeId %>" class="btn btn-warning">Take AI Test</a>
+        <a href="/upload" class="btn btn-primary">Analyze Another</a>
+        <a href="/" class="btn btn-secondary">Back to Home</a>
+      </footer>
+    </div>
+  </body>
+</html>

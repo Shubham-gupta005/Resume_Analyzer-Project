@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Result - AI Resume Analyzer</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="result-container" style="max-width: 950px; padding: 40px;">
+      
+      <header class="result-header" style="margin-bottom: 35px; border-bottom: 1px solid #ecf0f1; padding-bottom: 25px;">
+        <h1>AI Readiness Test Report</h1>
+        <p>Technical Assessment Results for <strong><%= resume.structuredResume.name || "Candidate" %></strong></p>
+
+        <!-- Scores Breakdown Grid -->
+        <div class="scores-wrapper">
+          <!-- Total marks score circle -->
+          <div class="score-circle">
+            <span class="score"><%= evaluation.totalScore %>/30</span>
+            <span class="score-label">Total Score</span>
+          </div>
+          <!-- Percentage match circle -->
+          <div class="score-circle match-circle" style="background-color: #eff6ff; border-color: #3b82f6;">
+            <span class="score" style="color: #2563eb;"><%= evaluation.percentage %>%</span>
+            <span class="score-label" style="color: #64748b;">Readiness Rating</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="cards-grid" style="grid-template-columns: 1fr; gap: 25px;">
+        
+        <!-- Overall Recruiter Feedback Panel -->
+        <div class="card" style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 25px;">
+          <h2 style="font-size: 19px; border-bottom: 2px solid #2563eb;">Overall Evaluator Assessment</h2>
+          <p style="font-size: 15px; color: #334155; line-height: 1.6; margin-top: 10px;">
+            <%= evaluation.overallFeedback %>
+          </p>
+        </div>
+
+        <!-- Summary Performance Breakdown Table -->
+        <div class="results-table-card">
+          <h2 style="font-size: 17px; color: #1e293b; font-weight: 700; margin-bottom: 10px;">Score Card Breakdown</h2>
+          <div class="table-responsive">
+            <table class="marks-table">
+              <thead>
+                <tr>
+                  <th>Question No.</th>
+                  <th>Core Topic evaluated</th>
+                  <th>Awarded Marks</th>
+                  <th>Maximum Marks</th>
+                  <th>Performance Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% evaluation.questions.forEach(function(q, index) { %>
+                  <tr>
+                    <td>Question <%= index + 1 %></td>
+                    <td style="color: #475569; max-width: 350px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      <%= (resume.analysis && resume.analysis.skillsMatching && resume.analysis.skillsMatching[index]) ? resume.analysis.skillsMatching[index] : "Technical Conceptual Focus" %>
+                    </td>
+                    <td class="score-cell"><%= q.score %></td>
+                    <td>6</td>
+                    <td>
+                      <% if (q.score >= 5) { %>
+                        <span class="badge" style="background-color: #d1fae5; color: #065f46; margin: 0;">Excellent</span>
+                      <% } else if (q.score >= 3) { %>
+                        <span class="badge" style="background-color: #fef3c7; color: #92400e; margin: 0;">Passing</span>
+                      <% } else { %>
+                        <span class="badge" style="background-color: #fee2e2; color: #991b1b; margin: 0;">Weak</span>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Detailed Question by Question Review -->
+        <div>
+          <h2 style="font-size: 18px; color: #1e293b; font-weight: 700; margin-bottom: 15px; text-align: left;">Detailed Answers & Feedback Review</h2>
+          <div class="question-feedback-block">
+            <% evaluation.questions.forEach(function(q, index) { %>
+              <% 
+                // Border highlight coloring variable based on marks
+                let ratingClass = 'warning';
+                if (q.score >= 5) ratingClass = 'excellent';
+                if (q.score <= 2) ratingClass = 'danger';
+              %>
+              <div class="feedback-detail-card <%= ratingClass %>">
+                <div class="feedback-detail-header">
+                  <span class="feedback-detail-title">Question <%= index + 1 %> Evaluation</span>
+                  <span class="feedback-detail-score">Score: <%= q.score %> / 6</span>
+                </div>
+                <div class="feedback-detail-body" style="margin-bottom: 15px; font-weight: 600; color: #0f172a;">
+                  <%= (resume.analysis && resume.analysis.skillsMatching && resume.analysis.skillsMatching[index]) ? 'Skill Focus: ' + resume.analysis.skillsMatching[index] : 'General Capability' %>
+                </div>
+                <div class="feedback-detail-body" style="background-color: #ffffff; padding: 12px; border-radius: 6px; border: 1.5px solid #f1f5f9; font-weight: 500;">
+                  <strong>Question:</strong>
+                  <p style="margin-top: 5px; color: #334155; font-weight: normal;"><%= questions[index] ? questions[index].question : "Concept assessment question" %></p>
+                </div>
+                
+                <!-- Display candidate's answer response -->
+                <div style="margin-top: 15px;">
+                  <strong style="font-size: 13px; color: #64748b;">Your Answer Submission:</strong>
+                  <div class="feedback-detail-answer"><%= answers[index] || "[No answer provided]" %></div>
+                </div>
+
+                <!-- Display dynamic AI grading feedback -->
+                <div style="margin-top: 15px; border-top: 1.5px dashed #e2e8f0; padding-top: 12px;">
+                  <strong style="font-size: 13px; color: #64748b; display: flex; align-items: center; gap: 5px;">
+                    <span>🎙️</span> Technical Interviewer Feedback:
+                  </strong>
+                  <p style="font-size: 14px; color: #334155; line-height: 1.5; margin-top: 6px; font-style: normal;">
+                    <%= q.feedback %>
+                  </p>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+
+      </main>
+
+      <footer class="result-actions" style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px;">
+        <a href="/resume/result/<%= resume._id %>" class="btn btn-primary">Back to Resume Analysis</a>
+        <a href="/upload" class="btn btn-secondary">Analyze Another Resume</a>
+      </footer>
+
+    </div>
+  </body>
+</html>
